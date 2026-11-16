@@ -1,0 +1,65 @@
+
+Guitar (E2–E5, phone mic)   (150 notes, 171 ms window @ 48 kHz)
+  detector                 correct  wrong  none  median¢  p95¢   ms
+  Tunewell (ours)          100.0%    0.0%   0.0%    0.0    0.2   1.0
+  Tunewell, MPM stage only 100.0%    0.0%   0.0%    5.1    7.0   0.6
+  pitchy (MPM)             100.0%    0.0%   0.0%    5.1    7.0   0.4
+  pitchfinder YIN          100.0%    0.0%   0.0%    7.4    9.0   8.9
+  pitchfinder MPM           98.7%    0.0%   1.3%    5.2    6.9  22.5
+  pitchfinder ACF2+        100.0%    0.0%   0.0%    5.3    7.6  88.6
+  pitchfinder Wavelet       67.3%    2.7%  30.0%    7.0   31.3   0.5
+  cwilso autocorrelation   100.0%    0.0%   0.0%    5.3    7.6  50.6
+
+Bass (E1–G3, phone mic)   (150 notes, 171 ms window @ 48 kHz)
+  detector                 correct  wrong  none  median¢  p95¢   ms
+  Tunewell (ours)          100.0%    0.0%   0.0%    0.1    0.2   0.9
+  Tunewell, MPM stage only 100.0%    0.0%   0.0%    8.9   12.3   0.6
+  pitchy (MPM)             100.0%    0.0%   0.0%    8.9   12.3   0.3
+  pitchfinder YIN          100.0%    0.0%   0.0%   11.6   14.9   8.9
+  pitchfinder MPM           58.7%    0.0%  41.3%    8.1   10.4  22.1
+  pitchfinder ACF2+        100.0%    0.0%   0.0%    9.1   13.2  89.2
+  pitchfinder Wavelet       56.7%   16.7%  26.7%    9.3   22.4   0.5
+  cwilso autocorrelation   100.0%    0.0%   0.0%    9.1   13.2  52.0
+
+Bowed: cello/viola/violin (C2–A6)   (150 notes, 171 ms window @ 48 kHz)
+  detector                 correct  wrong  none  median¢  p95¢   ms
+  Tunewell (ours)          100.0%    0.0%   0.0%    0.0    0.1   0.9
+  Tunewell, MPM stage only 100.0%    0.0%   0.0%    0.1    2.0   0.6
+  pitchy (MPM)             100.0%    0.0%   0.0%    0.1    2.0   0.3
+  pitchfinder YIN          100.0%    0.0%   0.0%    0.2    2.4   8.9
+  pitchfinder MPM           70.0%    1.3%  28.7%    0.1    1.8  22.0
+  pitchfinder ACF2+         87.3%   12.7%   0.0%    0.1    1.3  83.3
+  pitchfinder Wavelet       47.3%    5.3%  47.3%    0.7   12.5   0.5
+  cwilso autocorrelation    87.3%   12.7%   0.0%    0.1    1.3  50.2
+
+Piano (A0–C8, inharmonic)   (150 notes, 171 ms window @ 48 kHz)
+  detector                 correct  wrong  none  median¢  p95¢   ms
+  Tunewell (ours)          100.0%    0.0%   0.0%    0.0    0.2   0.9
+  Tunewell, MPM stage only 100.0%    0.0%   0.0%    8.9   19.1   0.6
+  pitchy (MPM)              99.3%    0.0%   0.7%    8.9   19.1   0.3
+  pitchfinder YIN           97.3%    0.0%   2.7%   12.1   24.3   8.9
+  pitchfinder MPM           70.0%    0.0%  30.0%    8.1   19.5  22.0
+  pitchfinder ACF2+         93.3%    6.7%   0.0%    9.0   19.1  88.9
+  pitchfinder Wavelet       44.7%   15.3%  40.0%    8.2   39.6   0.5
+  cwilso autocorrelation    93.3%    6.7%   0.0%    9.0   19.1  52.7
+
+Noisy room (SNR 10 dB, any)   (150 notes, 171 ms window @ 48 kHz)
+  detector                 correct  wrong  none  median¢  p95¢   ms
+  Tunewell (ours)          100.0%    0.0%   0.0%    0.1    0.4   0.9
+  Tunewell, MPM stage only 100.0%    0.0%   0.0%    0.3    1.0   0.6
+  pitchy (MPM)              98.7%    0.0%   1.3%    0.3    1.0   0.3
+  pitchfinder YIN           88.0%   12.0%   0.0%    0.6    1.9   8.9
+  pitchfinder MPM           50.7%    3.3%  46.0%    0.3    1.1  22.0
+  pitchfinder ACF2+         94.7%    5.3%   0.0%    0.3    0.9  88.0
+  pitchfinder Wavelet       28.0%    9.3%  62.7%    3.4   11.7   0.4
+  cwilso autocorrelation    94.7%    5.3%   0.0%    0.3    0.9  52.4
+
+False readings on pure noise (lower is better)
+  Tunewell (ours)            0.0%
+  Tunewell, MPM stage only   0.0%
+  pitchy (MPM)               0.0%
+  pitchfinder YIN          100.0%
+  pitchfinder MPM            0.0%
+  pitchfinder ACF2+          0.0%
+  pitchfinder Wavelet        0.0%
+  cwilso autocorrelation     0.0%

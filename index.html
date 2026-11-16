@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tunewell</title>
+<meta name="description" content="Free, open-source instrument tuner that runs in your browser. Guitar, bass, violin, viola, cello, ukulele, mandolin, banjo, piano and chromatic. No ads, no install, audio never leaves your device.">
+<meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101418" media="(prefers-color-scheme: dark)">
+<style>
+/* Layout: one narrow column, display on top, meter in the middle, strings at the thumb. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #14191f;
+  --muted: #5d6874;
+  --line: #d3d9e0;
+  --accent: #c2680c;        /* needle, rosin amber */
+  --good: #13834a;          /* in tune */
+  --good-soft: rgba(19,131,74,.14);
+  --off: #b4382f;           /* far off */
+  --font-display: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101418; --surface: #182027; --ink: #e8edf2; --muted: #93a0ad; --line: #2b3640;
+    --accent: #f0a04b; --good: #3fd08a; --good-soft: rgba(63,208,138,.16); --off: #ff7a6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101418; --surface: #182027; --ink: #e8edf2; --muted: #93a0ad; --line: #2b3640;
+  --accent: #f0a04b; --good: #3fd08a; --good-soft: rgba(63,208,138,.16); --off: #ff7a6e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.45 var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  max-width: 520px; min-height: 100%; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 18px;
+  padding-block: max(14px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brand { font: 700 19px/1 var(--font-display); letter-spacing: -.01em; margin-right: auto; }
+.brand small { font: 500 11px/1 var(--font-mono); color: var(--muted); letter-spacing: .06em; margin-left: 6px; text-transform: uppercase; }
+select, button { font: inherit; color: inherit; }
+select {
+  appearance: none; -webkit-appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23889' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 28px 8px 12px; font-weight: 600;
+}
+.ref { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.ref button { border: 0; background: none; width: 32px; height: 36px; cursor: pointer; font-size: 18px; color: var(--muted); }
+.ref span { font: 600 13px/1 var(--font-mono); font-variant-numeric: tabular-nums; min-width: 74px; text-align: center; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.display { text-align: center; padding-block: 8px 0; }
+.note {
+  font: 800 clamp(96px, 30vw, 148px)/1 var(--font-display); letter-spacing: -.04em;
+  display: inline-flex; align-items: flex-start; justify-content: center; min-height: 1em;
+  transition: color .15s;
+}
+.note sub { font-size: .26em; font-weight: 700; color: var(--muted); align-self: flex-end; margin: 0 0 .14em .04em; letter-spacing: 0; }
+.note .acc { font-size: .5em; margin-top: .06em; }
+.idle .note { color: var(--line); }
+.intune .note { color: var(--good); }
+.readout { display: flex; justify-content: center; gap: 18px; font: 500 14px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 6px; }
+.readout b { color: var(--ink); font-weight: 600; }
+.status { margin-top: 12px; font-weight: 600; min-height: 1.5em; color: var(--muted); }
+.intune .status { color: var(--good); }
+.far .status { color: var(--off); }
+
+.meter { position: relative; height: 74px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.meter .zone { position: absolute; top: 0; bottom: 0; left: calc(50% - 3%); width: 6%; background: var(--good-soft); }
+.meter svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.meter .tick { stroke: var(--line); }
+.meter .tick.major { stroke: var(--muted); }
+.meter text { fill: var(--muted); font: 500 9px var(--font-mono); }
+.needle {
+  position: absolute; top: 8px; bottom: 8px; width: 4px; margin-left: -2px; left: 50%;
+  background: var(--accent); border-radius: 2px; transition: left .09s linear, opacity .3s, background .15s;
+}
+.idle .needle { opacity: .15; }
+.intune .needle { background: var(--good); box-shadow: 0 0 0 6px var(--good-soft); }
+
+.trace { width: 100%; height: 64px; display: block; border-radius: 10px; }
+
+.strings { display: grid; grid-template-columns: repeat(auto-fit, minmax(52px, 1fr)); gap: 8px; }
+.strings button {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 4px 8px;
+  cursor: pointer; display: grid; gap: 2px; justify-items: center; transition: border-color .15s, background .15s;
+}
+.strings button b { font: 700 20px/1 var(--font-display); }
+.strings button small { font: 500 10px/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.strings button.target { border-color: var(--accent); }
+.strings button.target.ok { border-color: var(--good); background: var(--good-soft); }
+.strings button.locked { border-width: 2px; padding: 9px 3px 7px; }
+.strings .auto { font: 600 12px/1 var(--font-body); color: var(--muted); align-content: center; }
+.strings .auto.on { color: var(--ink); border-color: var(--ink); }
+.hint { font-size: 12px; color: var(--muted); text-align: center; margin: -8px 0 0; }
+
+.start {
+  border: 0; border-radius: 14px; padding: 16px; cursor: pointer;
+  background: var(--ink); color: var(--bg); font: 700 17px/1 var(--font-display);
+}
+.start.stop { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.level { height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.level i { display: block; height: 100%; width: calc(var(--lvl, 0) * 100%); background: var(--muted); transition: width .08s; }
+.msg { font-size: 13px; text-align: center; color: var(--muted); margin: 0; min-height: 1.4em; }
+.msg.err { color: var(--off); }
+footer { margin-top: auto; font-size: 12px; color: var(--muted); text-align: center; display: grid; gap: 4px; }
+footer a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { .needle, .level i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app idle" id="app">
+  <header>
+    <div class="brand">Tunewell<small>tuner</small></div>
+    <label for="preset" hidden>Instrument</label>
+    <select id="preset" aria-label="Instrument"></select>
+    <div class="ref" role="group" aria-label="Reference pitch">
+      <button id="refDown" aria-label="Lower reference pitch">−</button>
+      <span id="refVal">A4 440</span>
+      <button id="refUp" aria-label="Raise reference pitch">+</button>
+    </div>
+  </header>
+
+  <section class="display" aria-live="polite">
+    <div class="note" id="note">–</div>
+    <div class="readout"><span><b id="cents">±0</b> cents</span><span><b id="hz">—</b> Hz</span></div>
+    <div class="status" id="status">Tap Start, then play one string</div>
+  </section>
+
+  <div class="meter" aria-hidden="true">
+    <div class="zone"></div>
+    <svg id="scale" preserveAspectRatio="none"></svg>
+    <div class="needle" id="needle"></div>
+  </div>
+
+  <canvas class="trace" id="trace" aria-label="Pitch over the last few seconds"></canvas>
+
+  <div class="strings" id="strings"></div>
+  <p class="hint" id="hint"></p>
+
+  <button class="start" id="start">Start tuner</button>
+  <div class="level" aria-hidden="true"><i id="level"></i></div>
+  <p class="msg" id="msg">Audio is analysed on this device and never uploaded.</p>
+
+  <footer>
+    <span id="diag">Works in Chrome, Safari, Firefox and Edge on phone or desktop.</span>
+    <span>Free and open source · MIT license</span>
+  </footer>
+</div>
+<script src="pitch.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
