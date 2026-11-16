@@ -86,12 +86,15 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 .meter .tick { stroke: var(--line); }
 .meter .tick.major { stroke: var(--muted); }
 .meter text { fill: var(--muted); font: 500 9px var(--font-mono); }
-.needle {
-  position: absolute; top: 8px; bottom: 8px; width: 4px; margin-left: -2px; left: 50%;
-  background: var(--accent); border-radius: 2px; transition: left .09s linear, opacity .3s, background .15s;
+/* Full-width track moved with transform (set per frame in app.js); the bar is its ::before.
+   No transition on the transform: app.js already smooths, and a CSS transition would add ~90 ms of lag. */
+.needle { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; will-change: transform; transition: opacity .3s; }
+.needle::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; margin-left: -2px;
+  background: var(--accent); border-radius: 2px; transition: background .15s;
 }
 .idle .needle { opacity: .15; }
-.intune .needle { background: var(--good); box-shadow: 0 0 0 6px var(--good-soft); }
+.intune .needle::before { background: var(--good); box-shadow: 0 0 0 6px var(--good-soft); }
 
 .trace { width: 100%; height: 64px; display: block; border-radius: 10px; }
 

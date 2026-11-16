@@ -27,6 +27,11 @@
   const MIN_CLARITY = 0.88;   // MPM confidence for a usable frame
   const HOLD_MS = 1500;       // keep the last note on screen after the sound stops
   const TRACE_LEN = 240;      // ~4 s at 60 fps
+  // Display smoothing: 1€ filter (Casiez et al. 2012). Low cutoff steadies a held note; the cutoff
+  // rises with pitch speed so a turning peg is followed without lag. Time-based, so 60/120 Hz match.
+  const MIN_CUTOFF = 1.0;     // Hz
+  const BETA = 0.05;          // cutoff gain per cent/s of pitch speed
+  const D_CUTOFF = 1.0;       // Hz, for the speed estimate
 
   const $ = (id) => document.getElementById(id);
   const app = $('app'), noteEl = $('note'), centsEl = $('cents'), hzEl = $('hz'), statusEl = $('status');
@@ -144,7 +149,7 @@
 
   // ---------- audio ----------
   let ctx = null, stream = null, analyser = null, det = null, buf = null, sr = 48000, raf = 0, wakeLock = null;
-  let noiseFloor = 0.002, hist = [], stableMidi = null, pending = [], dispMidi = null, lastVoiced = 0, inTuneSince = 0;
+  let noiseFloor = 0.002, hist = [], stableMidi = null, pending = [], dispMidi = null, dispSpeed = 0, lastVoiced = 0, inTuneSince = 0, lastFrame = 0;
 
   async function start() {
     msg.classList.remove('err');
@@ -212,12 +217,21 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && stream && !wakeLock) requestWakeLock(); });
 
-  function resetPitch() { hist = []; stableMidi = null; pending = []; dispMidi = null; inTuneSince = 0; }
+  function resetPitch() { hist = []; stableMidi = null; pending = []; dispMidi = null; dispSpeed = 0; inTuneSince = 0; }
 
   function median(a) { const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; }
 
+  const alpha = (cutoff, dt) => 1 / (1 + 1 / (2 * Math.PI * cutoff * dt));
+  function smooth(target, dt) {
+    if (dispMidi == null) { dispMidi = target; dispSpeed = 0; return; }
+    dispSpeed += alpha(D_CUTOFF, dt) * ((target - dispMidi) / dt - dispSpeed);
+    dispMidi += alpha(MIN_CUTOFF + BETA * Math.abs(dispSpeed) * 100, dt) * (target - dispMidi);
+  }
+
   function loop(now) {
     raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.1, Math.max(0.001, (now - (lastFrame || now - 16.7)) / 1000));
+    lastFrame = now;
     analyser.getFloatTimeDomainData(buf);
     const r = det.detect(buf, sr);
     levelEl.style.setProperty('--lvl', Math.min(1, Math.sqrt(r.rms) * 3));
@@ -234,14 +248,14 @@
         // Possible new note or an octave slip: only accept after a few agreeing frames.
         if (pending.length && Math.abs(m - pending[pending.length - 1]) > 0.5) pending = [];
         pending.push(m);
-        if (pending.length >= 4) { hist = pending.slice(); pending = []; dispMidi = null; }
+        if (pending.length >= 4) { hist = pending.slice(-3); pending = []; dispMidi = null; }
       } else {
         pending = [];
-        hist.push(m); if (hist.length > 7) hist.shift();
+        hist.push(m); if (hist.length > 3) hist.shift(); // median of 3 drops single-frame glitches
       }
       if (hist.length) {
         stableMidi = median(hist);
-        dispMidi = dispMidi == null ? stableMidi : dispMidi + 0.3 * (stableMidi - dispMidi);
+        smooth(stableMidi, dt);
         lastVoiced = now;
       }
     }
@@ -269,7 +283,7 @@
     if (midi == null) {
       app.className = 'app idle';
       noteEl.textContent = '–'; centsEl.textContent = '±0'; hzEl.textContent = '—';
-      needle.style.left = '50%';
+      needle.style.transform = '';
       if (stream) statusEl.textContent = 'Play a string';
       markString(-1, false);
       return;
@@ -283,7 +297,8 @@
     const c = Math.round(cents);
     centsEl.textContent = (c > 0 ? '+' : c < 0 ? '−' : '±') + Math.abs(c);
     hzEl.textContent = midiToFreq(midi, a4).toFixed(1);
-    needle.style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
+    // The needle element spans the meter, so translateX(n%) moves the bar n% of the meter width (GPU, no layout).
+    needle.style.transform = 'translateX(' + Math.max(-50, Math.min(50, cents)).toFixed(2) + '%)';
     if (ok) statusEl.textContent = inTuneSince && now - inTuneSince > 500 ? 'In tune ✓' : 'Almost there';
     else if (far && strings.length) {
       const { name, octave } = midiName(midi);
